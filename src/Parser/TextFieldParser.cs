@@ -246,9 +246,10 @@ namespace NetShell
 
             do
             {
-                nextLine = ReadLine();
+                if ((nextLine = ReadLine()) == null)
+                    break;
             }
-            while (nextLine == null || IsCommentLine(nextLine));
+            while (IsCommentLine(nextLine));
 
             return nextLine;
         }
