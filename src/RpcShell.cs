@@ -97,7 +97,7 @@ namespace NetShell
                     }
 
                     if (selected.ParameterType.IsEnum)
-                        return selected.ParameterType.GetEnumNames().Select(s => s.ToLower());
+                        return selected.ParameterType.GetEnumNames();
 
                     if (selected.ParameterType == typeof(bool))
                         return new[] { "true", "false" };
