@@ -152,6 +152,14 @@ namespace NetShell
                 {
                     if (line[j] == '"')
                     {
+                        //if the quotes are escaped using two quotes ""
+                        //skip ahead
+                        if (j + 1 < line.Length && line[j + 1] == '"')
+                        {
+                            j += 1;
+                            continue;
+                        }
+
                         inQuote = false;
                         mustMatch = true;
                     }
@@ -163,8 +171,10 @@ namespace NetShell
                     if (string.Compare(line, j, Delimiters[i], 0, Delimiters[i].Length) == 0)
                     {
                         nextIndex = j + Delimiters[i].Length;
+
                         if (nextIndex == line.Length)
                             nextIndex = int.MinValue;
+
                         if (mustMatch)
                             return line.Substring(startIndex, j - startIndex - 1);
                         else
@@ -418,7 +428,7 @@ namespace NetShell
 
         ~TextFieldParser()
         {
-            Dispose(false);            
+            Dispose(false);
         }
     }
 }
