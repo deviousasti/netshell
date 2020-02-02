@@ -120,17 +120,22 @@ namespace NetShell
 
             while (!(nextIndex >= line.Length))
             {
-                result.Add(GetNextField(line, currentIndex, ref nextIndex));
+                var field = GetNextField(line, currentIndex, ref nextIndex, out var isQuoted);
+                if (ShouldQuoteEnclosedFields && isQuoted)
+                    field = $"\"{field}\"";
+                
+                result.Add(field);
                 currentIndex = nextIndex;
             }
 
             return result.ToArray();
         }
 
-        private string GetNextField(string line, int startIndex, ref int nextIndex)
+        private string GetNextField(string line, int startIndex, ref int nextIndex, out bool isAQuotedField)
         {
             bool inQuote = false;
             int currentindex = startIndex;
+            isAQuotedField = false;
 
             if (nextIndex == int.MinValue)
             {
@@ -141,6 +146,7 @@ namespace NetShell
             if (HasFieldsEnclosedInQuotes && line[currentindex] == '"')
             {
                 inQuote = true;
+                isAQuotedField = true;
                 startIndex += 1;
             }
 
@@ -402,6 +408,7 @@ namespace NetShell
 
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public bool HasFieldsEnclosedInQuotes { get; set; } = true;
+        public bool ShouldQuoteEnclosedFields { get; set; } = true;
 
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public long LineNumber { get; private set; } = -1;
