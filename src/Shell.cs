@@ -55,14 +55,30 @@ namespace NetShell
             //get suggestions even if spelt wrongly           
 
             var suggestions = commands
-                .Where(c => !String.IsNullOrWhiteSpace(c))
+                .Where(c => !string.IsNullOrWhiteSpace(c))
                 .Select(c => c.Trim())
-                .Select(str => (distance: LevenshteinDistance(str.ToUpperInvariant(), hint.ToUpperInvariant()), str))
-                .OrderBy(pair => pair.str.StartsWith(hint) ? 0 : pair.distance)
+                .Select(str => (distance: Rank(str, hint), str))
+                .OrderBy(pair => pair.distance)
                 .Where(pair => pair.distance < pair.str.Length)
                 .Select(pair => pair.str);
 
             return suggestions;
+        }
+
+        public static int Rank(string str, string hint)
+        {
+            var split = str.Split('-');
+            if (split.Length > 1 && split.Zip(hint, (s, h) => s.StartsWith(h.ToString())).All(x => x))
+                return 0;
+
+            if (split.Any(s => s.StartsWith(hint)))
+                return 0;
+
+            if (str.EndsWith(hint))
+                return 1;
+
+            var distance = LevenshteinDistance(hint.ToUpperInvariant(), str.ToUpperInvariant());
+            return distance;
         }
 
         public static string QuoteIfNeeded(string arg) => 
@@ -71,6 +87,11 @@ namespace NetShell
         public static string Humanize(string value)
         {
             return Regex.Replace(value, "(?!^)([A-Z])", " $1");
+        }
+
+        public static string Hyphenize(string value)
+        {
+            return Regex.Replace(value, "(?!^)([A-Z])", "-$1");
         }
 
         public Shell()
