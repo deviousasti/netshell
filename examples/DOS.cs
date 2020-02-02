@@ -10,20 +10,21 @@ namespace example
     {
         public string Dir => Environment.CurrentDirectory;
 
-        public IEnumerable<string> SuggestDirs() => Directory.EnumerateDirectories(Dir).Select(Path.GetFileName);
+        public IEnumerable<string> SuggestDirs(string path) => Directory.EnumerateDirectories(Dir).Select(Path.GetFileName);
         public IEnumerable<string> SuggestFiles() => Directory.EnumerateFiles(Dir).Select(Path.GetFileName);
 
         [Command("echo")]
-        public void Echo(string text, ConsoleColor color = ConsoleColor.White)
+        public void Echo(string text, ConsoleColor color = ConsoleColor.White, ConsoleColor bgColor = ConsoleColor.Black)
         {
             Console.ForegroundColor = color;
+            Console.BackgroundColor = bgColor;
             Console.WriteLine(text);
             Console.ResetColor();
         }
 
         [Command("cd")]
         public void ChangeDir([Suggest(nameof(SuggestDirs))] string directory)
-        {            
+        {
             var path = Path.GetFullPath(directory);
             if (!Directory.Exists(path))
                 throw new DirectoryNotFoundException($"{path} does not exist");
@@ -32,9 +33,9 @@ namespace example
         }
 
         [Command("dir")]
-        public IEnumerable<string> List(string pattern = "*")
+        public IEnumerable<string> List(string pattern = "*", bool onlyFiles = false)
         {
-            var dirs = Directory.EnumerateDirectories(Dir, pattern);
+            var dirs = onlyFiles ? Enumerable.Empty<string>() : Directory.EnumerateDirectories(Dir, pattern);
             var files = Directory.EnumerateFiles(Dir, pattern);
             return Enumerable.Concat(dirs, files).Select(Path.GetFileName);
         }
@@ -45,6 +46,6 @@ namespace example
             shell.Exit(0);
         }
 
-        
+
     }
 }
