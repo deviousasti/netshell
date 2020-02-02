@@ -14,14 +14,7 @@ namespace NetShell
     {
         public Shell Shell { get; } = new Shell();
 
-        [ThreadStatic]
-        private static RpcShell _instance;
-
-        public static RpcShell Instance
-        {
-            get { return _instance; }
-            internal set { _instance = value; }
-        }
+        public static RpcShell Instance { get; protected set; }
 
         public string Prompt
         {
@@ -67,11 +60,21 @@ namespace NetShell
                 if (GetMethod(name, out var method))
                 {
                     var parameters = method.GetParameters();
+                    var lastArg = args.LastOrDefault();
+                    var secondLastArg = args.ElementAtOrDefault(args.Length - 2);
+                    var length = FindOrdinalLength(args);
 
-                    if (args.Length > parameters.Length)
+                    if (IsFlag(lastArg))
+                        return parameters.Select(p => $"-{p.Name}");
+
+                    if (FindOrdinalLength(args) > parameters.Length)
                         return new string[] { };
 
-                    var selected = parameters[Math.Max(0, args.Length - 1)];
+                    var selected = 
+                        IsFlag(secondLastArg) ?
+                        FindParameterFor(secondLastArg, parameters)
+                        :
+                        parameters.ElementAtOrDefault(Math.Max(0, args.Length - 1));
 
                     var suggestion = selected.GetCustomAttribute<SuggestAttribute>()?.MethodName ?? String.Empty;
                     
@@ -80,7 +83,7 @@ namespace NetShell
                         var suggestionMethod = Target.GetType().GetMethod(suggestion);
                         if (suggestionMethod != null)
                         {
-                            var suggestParams = new object[] { args.Last(), index }.Take(suggestionMethod.GetParameters().Length).ToArray();
+                            var suggestParams = (new object[] { lastArg, index }).Take(suggestionMethod.GetParameters().Length).ToArray();
 
                             var result =
                                 suggestionMethod.Invoke(Target, suggestParams) as IEnumerable<string>;
@@ -95,9 +98,29 @@ namespace NetShell
 
                     if (selected.ParameterType.IsEnum)
                         return selected.ParameterType.GetEnumNames().Select(s => s.ToLower());
+
+                    if (selected.ParameterType == typeof(bool))
+                        return new[] { "true", "false" };
                 }
 
             return GetCommands();
+        }
+
+        protected int FindOrdinalLength(string[] args)
+        {                     
+            int ordinalLength = 0;
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (IsFlag(args[i]))
+                {
+                    i += 1;
+                    continue;
+                }
+
+                ordinalLength += 1;
+            }
+
+            return ordinalLength;
         }
 
         char[] IAutoCompleteHandler.Separators { get => Shell.Separators; set => Shell.Separators = value; }

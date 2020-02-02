@@ -118,6 +118,7 @@ namespace NetShell
                         Delimiters = new[] { " " },
                         CommentTokens = new[] { "#" },
                         TrimWhiteSpace = true,
+                        ShouldQuoteEnclosedFields = true
                     })
                 {
                     args = parser.ReadFields();
@@ -130,13 +131,21 @@ namespace NetShell
                     return true;
                 }
             }
-            catch (MalformedLineException lineException)
+            catch (MalformedLineException) //This is always going to be line 1
             {
-                Error($"Invalid syntax or unclosed quotes in line {lineException.LineNumber}");
+                Error($"Invalid syntax or unclosed quotes in line");
             }
 
             args = null;
             return false;
+        }
+
+        protected bool IsFlag(string arg) => arg != null && arg.StartsWith("-");
+
+        protected ParameterInfo FindParameterFor(string flagName, ParameterInfo[] parameters)
+        {
+            var name = flagName.Replace('-', '\0');
+            return Array.Find(parameters, p => p.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         }
 
         public bool Dispatch(string input) => Dispatch(new StringReader(input));
@@ -186,21 +195,77 @@ namespace NetShell
 
             var injectable = Inject;
             var parameters = methodInfo.GetParameters();
-            if (args.Length < parameters.Count(p => !p.HasDefaultValue && !CanInject(injectable, p)))
-            {
-                Error("Incorrect number of arguments:");
-                Error(GetSyntax(name));
-                return false;
-            }
+            object[] typedArgs;
 
-            object[] typedArgs = { };
+           
 
             try
             {
-                typedArgs =
-                    parameters
-                    .Select((param, index) => index < args.Length ? ConvertArg(args[index], param) : GetDefaultValue(param))
-                    .ToArray();
+                HashSet<ParameterInfo> usedParams = new HashSet<ParameterInfo>();
+                typedArgs = parameters.Select(GetDefaultValue).ToArray();
+
+                for (int i = 0, param_order = 0; i < args.Length; i++)
+                {
+                    var arg = args[i];
+                    var next = i + 1 < args.Length ? args[i + 1] : null;
+
+                    if (IsFlag(arg))
+                    {
+                        var position = Array.IndexOf(parameters, FindParameterFor(arg, parameters));
+                        if (position == -1)
+                        {
+                            Error($"No parameter named {arg} was found");
+                            return false;
+                        }
+
+                        var param = parameters[position];
+
+                        if (!usedParams.Add(param))
+                        {
+                            Error($"Parameter {arg} was specified more than once");
+                            return false;
+                        }
+
+                        if (IsFlag(next) || next == null)
+                        {
+                            if(param.ParameterType != typeof(bool))
+                            {
+                                Error($"A value was not specified for -{param.Name}");
+                                return false;
+                            }
+
+                            //attempted to use as a switch, rather than 
+                            //a parameter with a value
+                            typedArgs[position] = ConvertArg("true", param);                            
+                            continue;
+                        }
+
+                        //consider next argument taken
+                        typedArgs[position] = ConvertArg(next, param);
+                        i += 1; //skip ahead
+                        continue;
+                    }
+
+                    if (!usedParams.Add(parameters[param_order]))
+                    {
+                        Error($"The parameter for {arg} was already specified at position ({param_order})");
+                        return false;
+                    }
+
+
+                    //regular parameter order
+                    typedArgs[param_order] = ConvertArg(arg, parameters[param_order]);
+                    param_order += 1;
+                }
+
+                var requiredParameters = parameters.Where(p => !p.HasDefaultValue && !CanInject(injectable, p));
+                if (!requiredParameters.All(usedParams.Contains))
+                {
+                    Error($"Incorrect number of arguments. Missing: {String.Join(",", requiredParameters.Where(p => !usedParams.Contains(p)).Select(p => p.Name))}");
+                    Error(GetSyntax(name));
+                    return false;
+                }
+
             }
             catch (System.Exception exception)
             {
@@ -295,19 +360,23 @@ namespace NetShell
             if (typeof(RpcDispatcher).IsAssignableFrom(parameterType))
                 return this;
 
-            return param.RawDefaultValue;
+            return param.HasDefaultValue ? param.RawDefaultValue : null;
         }
 
         protected virtual object ConvertArg(string args, ParameterInfo param)
         {
             var parameterType = param.ParameterType;
+            var toConvert = args.Trim('"');
+
+            if (parameterType == typeof(string))
+                return toConvert;
 
             var desc = TypeDescriptor.GetConverter(parameterType);
 
             if (desc != null && desc.CanConvertFrom(typeof(string)))
-                return desc.ConvertFromString(args);
+                return desc.ConvertFromString(toConvert);
 
-            return Convert.ChangeType(args, parameterType);
+            return Convert.ChangeType(toConvert, parameterType);
         }
 
         public CommandAttribute GetAttribute(string method)
