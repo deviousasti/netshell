@@ -26,6 +26,8 @@ namespace NetShell
 
         public char[] Separators { get; set; }
 
+        public const string DefaultPrompt = ">";
+
         private string[] commands;
         public IEnumerable<string> Commands
         {
@@ -77,7 +79,7 @@ namespace NetShell
             IsRunning = true;
             HistoryFile = $"{Assembly.GetEntryAssembly().Location}.rc";
             HistoryLimit = 100;
-            Prompt = ">";
+            Prompt = DefaultPrompt;
             Separators = new[] { ' ' };
         }
 

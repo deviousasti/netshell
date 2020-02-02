@@ -47,6 +47,17 @@ namespace NetShell
             return exitCode;
         }
 
+        public static int Run(object target, string prompt = Shell.DefaultPrompt)
+        {
+            var shell = new RpcShell(target) { Prompt = prompt };
+            return shell.Run();
+        }
+
+        public static int Run<T>(string prompt = Shell.DefaultPrompt) where T: new()
+        {
+            return Run(new T(), prompt);
+        }
+
         protected IEnumerable<string> GetAutoSuggestions(string text, int index)
         {
             if (!TryParse(text, out var partialArgs))
