@@ -197,8 +197,6 @@ namespace NetShell
             var parameters = methodInfo.GetParameters();
             object[] typedArgs;
 
-           
-
             try
             {
                 HashSet<ParameterInfo> usedParams = new HashSet<ParameterInfo>();
@@ -214,7 +212,7 @@ namespace NetShell
                         var position = Array.IndexOf(parameters, FindParameterFor(arg, parameters));
                         if (position == -1)
                         {
-                            Error($"No parameter named {arg} was found");
+                            Error($"No parameter named {arg} was found. Valid parameters: {String.Join(", ", parameters.Select(p => p.Name))}");
                             return false;
                         }
 
@@ -252,7 +250,6 @@ namespace NetShell
                         return false;
                     }
 
-
                     //regular parameter order
                     typedArgs[param_order] = ConvertArg(arg, parameters[param_order]);
                     param_order += 1;
@@ -278,7 +275,7 @@ namespace NetShell
 
                     if (parameterType.IsEnum)
                     {
-                        Error($"Valid values for {parameterType.Name}: {String.Join(", ", Enum.GetNames(parameterType))}");
+                        Error($"Valid values for {parameter.Name}: {String.Join(", ", Enum.GetNames(parameterType))}");
                     }
                 }
 
