@@ -48,7 +48,7 @@ namespace NetShell
 
         public static IEnumerable<string> RankSuggestions(IEnumerable<string> commands, string text, int index)
         {
-            var hint = text.Substring(index);
+            var hint = text.Substring(index).Trim('-');
             if (String.IsNullOrWhiteSpace(hint))
                 return commands;
 
@@ -67,7 +67,8 @@ namespace NetShell
 
         public static int Rank(string str, string hint)
         {
-            var split = str.Split('-');
+            var split = str.Trim('-').Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+
             if (split.Length > 1 && split.Zip(hint, (s, h) => s.StartsWith(h.ToString())).All(x => x))
                 return 0;
 
