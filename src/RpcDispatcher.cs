@@ -33,6 +33,12 @@ namespace NetShell
         }
     }
 
+    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+    public sealed class DefaultCommandAttribute : Attribute
+    {
+
+    }
+
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
     public sealed class SuggestAttribute : Attribute
     {
@@ -43,6 +49,8 @@ namespace NetShell
             this.MethodName = methodName;
         }
     }
+
+    public delegate void CommandDelegate(string method, string[] args);
 
     public class RpcDispatcher
     {
@@ -62,6 +70,8 @@ namespace NetShell
 
         public Stack<string> Stack { get; set; }
 
+        public CommandDelegate DefaultAction { get; set; }
+        
         public event Action<IEnumerable<string>> StackChanged;
 
         public IEnumerable<string> GetCommands()
@@ -78,14 +88,19 @@ namespace NetShell
                 { typeof(CancellationToken), default }
             };
 
-            var attributes =
-                target.GetType()
-                .GetMethods()
+            var methods = target.GetType().GetMethods();
+            var attributes = methods
                 .SelectMany(method => method.GetCustomAttributes<CommandAttribute>().Select(attr => (method, attr)));
+            var defaultCommand = methods.FirstOrDefault(m => m.GetCustomAttributes<DefaultCommandAttribute>().Any());
 
             try
             {
                 LookupTable = attributes.ToDictionary(pair => (pair.attr.CommandName ?? pair.method.Name).ToUpperInvariant(), pair => pair.method);
+
+                DefaultAction = defaultCommand != null ?
+                    (name, args) => Invoke(defaultCommand, new object[] { name, args }, Inject)
+                    : 
+                    new CommandDelegate(DefaultActionHandler);
             }
             catch (ArgumentException)
             {
@@ -189,7 +204,7 @@ namespace NetShell
 
             if (!GetMethod(name, out var methodInfo))
             {
-                OnCommandNotFound(name);
+                OnCommandNotFound(name, args);
                 return false;
             }
 
@@ -226,7 +241,7 @@ namespace NetShell
 
                         if (IsFlag(next) || next == null)
                         {
-                            if(param.ParameterType != typeof(bool))
+                            if (param.ParameterType != typeof(bool))
                             {
                                 Error($"A value was not specified for -{param.Name}");
                                 return false;
@@ -234,7 +249,7 @@ namespace NetShell
 
                             //attempted to use as a switch, rather than 
                             //a parameter with a value
-                            typedArgs[position] = ConvertArg("true", param);                            
+                            typedArgs[position] = ConvertArg("true", param);
                             continue;
                         }
 
@@ -325,7 +340,19 @@ namespace NetShell
             }
         }
 
-        protected virtual void OnCommandNotFound(string name)
+        protected virtual void OnCommandNotFound(string name, string[] args)
+        {
+            try
+            {
+                DefaultAction(name, args);
+            }
+            catch (Exception ex)
+            {
+                Error(ex.Message);
+            }            
+        }
+
+        protected virtual void DefaultActionHandler(string name, string[] args)
         {
             Error("Command " + name + " was not found");
         }

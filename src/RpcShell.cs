@@ -25,7 +25,7 @@ namespace NetShell
         public RpcShell(object target) : base(target)
         {
             Shell.Command += Dispatch;
-            StackChanged += Shell.SetCurrentPath;            
+            StackChanged += Shell.SetCurrentPath;
             ReadLine.AutoCompletionHandler = this;
             Instance = this;
             Inject.Add(typeof(Shell), Shell);
@@ -46,7 +46,7 @@ namespace NetShell
             return shell.Run();
         }
 
-        public static int Run<T>(string prompt = Shell.DefaultPrompt) where T: new()
+        public static int Run<T>(string prompt = Shell.DefaultPrompt) where T : new()
         {
             return Run(new T(), prompt);
         }
@@ -68,16 +68,19 @@ namespace NetShell
                         return parameters.Select(p => $"-{p.Name}");
 
                     if (FindOrdinalLength(args) > parameters.Length)
-                        return new string[] { };
+                        return Enumerable.Empty<string>();
 
-                    var selected = 
+                    var selected =
                         IsFlag(secondLastArg) ?
                         FindParameterFor(secondLastArg, parameters)
                         :
                         parameters.ElementAtOrDefault(Math.Max(0, args.Length - 1));
 
+                    if (selected == null)
+                        return Enumerable.Empty<string>();
+
                     var suggestion = selected.GetCustomAttribute<SuggestAttribute>()?.MethodName ?? String.Empty;
-                    
+
                     try
                     {
                         var suggestionMethod = Target.GetType().GetMethod(suggestion);
@@ -107,7 +110,7 @@ namespace NetShell
         }
 
         protected int FindOrdinalLength(string[] args)
-        {                     
+        {
             int ordinalLength = 0;
             for (int i = 0; i < args.Length; i++)
             {
@@ -166,7 +169,7 @@ namespace NetShell
 
             injectable[typeof(CancellationToken)] = token;
             InjectArguments(methodInfo, injectable, ref typedArgs);
-            
+
             try
             {
                 var task = InvokeAsync(methodInfo, typedArgs);
@@ -201,10 +204,10 @@ namespace NetShell
                     return false;
                 });
             }
-            catch(System.Exception exception)
+            catch (System.Exception exception)
             {
                 Error(exception.ToString());
-            }            
+            }
         }
 
 
@@ -230,10 +233,13 @@ namespace NetShell
             return result;
         }
 
-        protected override void OnCommandNotFound(string name)
+        protected override void DefaultActionHandler(string name, string[] args)
         {
-            base.OnCommandNotFound(name);
-            Error("Did you mean: " + String.Join(", ", Shell.RankSuggestions(GetCommands(), name, 0)));
+            base.DefaultActionHandler(name, args);
+
+            var suggestions = Shell.RankSuggestions(GetCommands(), name, 0);
+            if (suggestions.Any())
+                Error($"Did you mean: {String.Join(", ", suggestions)}");
         }
     }
 }
