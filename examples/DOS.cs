@@ -1,6 +1,7 @@
 ﻿using NetShell;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -44,6 +45,29 @@ namespace example
         public void Exit(Shell shell)
         {
             shell.Exit(0);
+        }
+
+        [Command("cls")]
+        public void Clear()
+        {
+            Console.Clear();
+        }
+
+
+        [DefaultCommand]
+        public void Execute(string name, string[] args)
+        {
+            using (var process = Process.Start(new ProcessStartInfo(name, String.Join(" ", args)) { RedirectStandardOutput = true, UseShellExecute = false }))
+            {
+                while (!process.StandardOutput.EndOfStream)
+                {
+                    if (Console.KeyAvailable)
+                        process.StandardInput.Write(Console.ReadKey().KeyChar);
+
+                    if (process.StandardOutput.Peek() != -1)
+                        Console.Write((char)process.StandardOutput.Read());
+                }
+            }
         }
 
 
