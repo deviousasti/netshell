@@ -392,8 +392,16 @@ namespace NetShell
             var parameterType = param.ParameterType;
             var toConvert = args.Trim('"');
 
+            //no conversion needed from string -> string
             if (parameterType == typeof(string))
                 return toConvert;
+
+            //allow y/n to be used with boolean
+            if (parameterType == typeof(bool))
+                if (toConvert.ToUpperInvariant().Equals("Y"))
+                    return true;
+                else if (toConvert.ToUpperInvariant().Equals("N"))
+                    return false;
 
                 var desc = TypeDescriptor.GetConverter(parameterType);
 

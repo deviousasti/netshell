@@ -29,6 +29,7 @@ namespace NetShell
             ReadLine.AutoCompletionHandler = this;
             Instance = this;
             Inject.Add(typeof(Shell), Shell);
+            Inject.Add(typeof(RpcShell), this);
         }
 
         public int Run()
@@ -103,7 +104,7 @@ namespace NetShell
                         return selected.ParameterType.GetEnumNames();
 
                     if (selected.ParameterType == typeof(bool))
-                        return new[] { "true", "false" };
+                        return new[] { "Y", "N", "true", "false" };
                 }
 
             return GetCommands();
