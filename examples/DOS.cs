@@ -1,6 +1,7 @@
 ﻿using NetShell;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -34,7 +35,9 @@ namespace example
         }
 
         [Command("dir")]
-        public IEnumerable<string> List(string pattern = "*", bool onlyFiles = false)
+        public IEnumerable<string> List(
+            [Description("Accepts glob patterns")] string pattern = "*", 
+            [Description("Only show files if true")] bool onlyFiles = false)
         {
             var dirs = onlyFiles ? Enumerable.Empty<string>() : Directory.EnumerateDirectories(Dir, pattern);
             var files = Directory.EnumerateFiles(Dir, pattern);
@@ -51,6 +54,12 @@ namespace example
         public void Clear()
         {
             Console.Clear();
+        }
+
+        [Command("help")]
+        public string Help(string command, RpcShell shell = default)
+        {
+            return shell.GetHelp(command);
         }
 
 
