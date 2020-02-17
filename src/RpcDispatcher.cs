@@ -395,7 +395,7 @@ namespace NetShell
             if (parameterType == typeof(string))
                 return toConvert;
 
-            var desc = TypeDescriptor.GetConverter(parameterType);
+                var desc = TypeDescriptor.GetConverter(parameterType);
 
             if (desc != null && desc.CanConvertFrom(typeof(string)))
                 return desc.ConvertFromString(toConvert);
@@ -403,7 +403,7 @@ namespace NetShell
             return Convert.ChangeType(toConvert, parameterType);
         }
 
-        public CommandAttribute GetAttribute(string method)
+        public CommandAttribute GetCommandAttribute(string method)
         {
             if (!GetMethod(method, out var methodInfo))
                 return null;
@@ -417,12 +417,29 @@ namespace NetShell
                 return $"Command '{name}' not found";
 
             var paramText = string.Join(" ", methodInfo.GetParameters().Select(p => GetParamInfo(p)).DefaultIfEmpty("<no parameters>"));
-            var attr = GetAttribute(name);
+            var attr = GetCommandAttribute(name);
 
             return $"{attr.CommandName} {paramText}";
         }
 
-        private string GetParamInfo(ParameterInfo p)
+        public string GetParamHelp(string name)
+        {
+            if (!GetMethod(name, out var methodInfo))
+                return String.Empty;
+
+            var paramDescriptions = 
+            methodInfo
+                .GetParameters()
+                .SelectMany(parameter => 
+                    parameter
+                    .GetCustomAttributes<DescriptionAttribute>()
+                    .Select(desc => $"-{parameter.Name}\t{desc.Description}")
+                );
+
+            return String.Join(Environment.NewLine, paramDescriptions);
+        }
+
+            private string GetParamInfo(ParameterInfo p)
         {
             if (CanInject(Inject, p))
                 return $"";
@@ -438,13 +455,14 @@ namespace NetShell
 
         public string GetHelp(string commandName)
         {
-            var attr = this.GetAttribute(commandName);
-            return $"Command {attr?.CommandName} {attr?.HelpText} \nSyntax: {GetSyntax(commandName)}";
+            var attr = this.GetCommandAttribute(commandName);
+            var paramHelp = this.GetParamHelp(commandName);
+            return $"Command {attr?.CommandName} {attr?.HelpText} \nSyntax: {GetSyntax(commandName)}\n{paramHelp}";
         }
 
         public string GetHelp()
         {
-            var table = GetCommands().Select(command => $"{command.PadRight(20)} {GetAttribute(command)?.HelpText}");
+            var table = GetCommands().Select(command => $"{command.PadRight(20)} {GetCommandAttribute(command)?.HelpText}");
             return String.Join("\n", table);
         }
     }
