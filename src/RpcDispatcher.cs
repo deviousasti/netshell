@@ -359,7 +359,7 @@ namespace NetShell
 
         protected virtual void OnResult(object result)
         {
-
+            //no default action on result
         }
 
         public bool GetMethod(string name, out MethodInfo methodInfo)
