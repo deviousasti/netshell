@@ -13,10 +13,12 @@ namespace GenericToDataString
         private int _currentIndent;
         private readonly int _indentSize;
         private readonly StringBuilder _stringBuilder;
-        private readonly Dictionary<object,int> _hashListOfFoundElements;
+        private readonly Dictionary<object, int> _hashListOfFoundElements;
         private readonly char _indentChar;
         private readonly int _depth;
         private int _currentLine;
+
+        public bool LongTypeName { get; set; }
 
         private ObjectDumper(int depth, int indentSize, char indentChar)
         {
@@ -24,10 +26,10 @@ namespace GenericToDataString
             _indentSize = indentSize;
             _indentChar = indentChar;
             _stringBuilder = new StringBuilder();
-            _hashListOfFoundElements = new Dictionary<object,int>();
+            _hashListOfFoundElements = new Dictionary<object, int>();
         }
 
-        public static string Dump(object element, int depth = 4,int indentSize=2,char indentChar=' ')
+        public static string Dump(object element, int depth = 4, int indentSize = 2, char indentChar = ' ')
         {
             var instance = new ObjectDumper(depth, indentSize, indentChar);
             return instance.DumpElement(element, true);
@@ -86,7 +88,12 @@ namespace GenericToDataString
                 else
                 {
                     Type objectType = element.GetType();
-                    Write("{{{0}(HashCode:{1})}}", objectType.FullName, element.GetHashCode());
+
+                    if (LongTypeName)
+                        Write("{{{0}(HashCode:{1})}}", objectType.FullName, element.GetHashCode());
+                    else
+                        Write("{{{0}}}", objectType.Name);
+
                     if (!AlreadyDumped(element))
                     {
                         _currentIndent++;
@@ -132,7 +139,7 @@ namespace GenericToDataString
                 }
             }
 
-            return isTopOfTree? _stringBuilder.ToString():null;
+            return isTopOfTree ? _stringBuilder.ToString() : null;
         }
 
         private bool AlreadyDumped(object value)
@@ -158,7 +165,7 @@ namespace GenericToDataString
             _stringBuilder.AppendLine(space + value);
             _currentLine++;
         }
-        
+
         private string FormatValue(object o)
         {
             if (o == null)

@@ -187,13 +187,36 @@ namespace NetShell
                             return;
                         }
 
+                    case IEnumerable<object> objects:
+                        {
+                            var enumerableType = objects.GetType();
+                            var innerType =
+                                enumerableType.HasElementType ? 
+                                enumerableType.GetElementType() : 
+                                enumerableType.GetGenericArguments().FirstOrDefault();
+
+                            if(innerType != null)
+                            {
+                                var generator =
+                                typeof(ConsoleTables.ConsoleTable)
+                                    .GetMethod(nameof(ConsoleTables.ConsoleTable.From))
+                                    .MakeGenericMethod(innerType);
+
+                                var table = generator.Invoke(null, new[] { result }) as ConsoleTables.ConsoleTable;
+                                table.Options.EnableCount = false;                                
+                                table.Write();                                
+                            }
+
+                            return;
+                        }
+
                     default:
                         Console.WriteLine(GenericToDataString.ObjectDumper.Dump(result));
                         return;
                 }
 
             }
-        } 
+        }
         #endregion
 
         #region Invoke
@@ -283,7 +306,7 @@ namespace NetShell
             var suggestions = Shell.RankSuggestions(GetCommands(), name, 0);
             if (suggestions.Any())
                 Error($"Did you mean: {String.Join(", ", suggestions)}");
-        } 
+        }
         #endregion
     }
 }

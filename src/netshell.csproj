@@ -41,6 +41,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\lib\console-tables\src\ConsoleTables\ConsoleTable.cs">
+      <Link>Util\ConsoleTable.cs</Link>
+    </Compile>
     <Compile Include="..\lib\readline\src\ReadLine\Abstractions\Console2.cs">
       <Link>Readline\Console2.cs</Link>
     </Compile>

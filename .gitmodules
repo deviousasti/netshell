@@ -1,3 +1,6 @@
 [submodule "lib/readline"]
 	path = lib/readline
 	url = https://github.com/tonerdo/readline.git
+[submodule "lib/console-tables"]
+	path = lib/console-tables
+	url = https://github.com/khalidabuhakmeh/ConsoleTables.git

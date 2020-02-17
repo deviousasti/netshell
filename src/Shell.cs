@@ -166,14 +166,21 @@ namespace NetShell
 
             while (IsRunning)
             {
-                var prompt = String.IsNullOrEmpty(CurrentPath) ? $"{Prompt}>" : $"{Prompt}/{CurrentPath}>";
-                var input = ReadLine.Read(prompt);
-
-                if (!String.IsNullOrWhiteSpace(input))
+                try
                 {
-                    OnCommand(input);
-                    ReadLine.AddHistory(input);
+                    var prompt = String.IsNullOrEmpty(CurrentPath) ? $"{Prompt}>" : $"{Prompt}/{CurrentPath}>";
+                    var input = ReadLine.Read(prompt);
+
+                    if (!String.IsNullOrWhiteSpace(input))
+                    {
+                        OnCommand(input);
+                        ReadLine.AddHistory(input);
+                    }
                 }
+                catch (Exception ex)
+                {
+                    Trace.TraceError(ex.ToString());
+                }                
             }
 
             var history = ReadLine.GetHistory();
