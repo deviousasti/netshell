@@ -89,7 +89,7 @@ namespace NetShell
                     var length = FindOrdinalLength(args);
 
                     if (IsFlag(lastArg))
-                        return parameters.Select(p => $"-{p.Name}");
+                        return parameters.Where(p => !CanInject(Inject, p)).Select(p => $"-{p.Name}");
 
                     if (FindOrdinalLength(args) > parameters.Length)
                         return Enumerable.Empty<string>();
