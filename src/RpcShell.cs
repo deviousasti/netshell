@@ -191,11 +191,11 @@ namespace NetShell
                         {
                             var enumerableType = objects.GetType();
                             var innerType =
-                                enumerableType.HasElementType ? 
-                                enumerableType.GetElementType() : 
+                                enumerableType.HasElementType ?
+                                enumerableType.GetElementType() :
                                 enumerableType.GetGenericArguments().FirstOrDefault();
 
-                            if(innerType != null)
+                            if (innerType != null)
                             {
                                 var generator =
                                 typeof(ConsoleTables.ConsoleTable)
@@ -203,8 +203,8 @@ namespace NetShell
                                     .MakeGenericMethod(innerType);
 
                                 var table = generator.Invoke(null, new[] { result }) as ConsoleTables.ConsoleTable;
-                                table.Options.EnableCount = false;                                
-                                table.Write();                                
+                                table.Options.EnableCount = false;
+                                table.Write();
                             }
 
                             return;
@@ -251,14 +251,19 @@ namespace NetShell
                 {
                     if (exception is TargetInvocationException tie)
                     {
-                        var exceptionType = tie.InnerException.GetType().Name;
-                        var exceptionName = Shell.Humanize(exceptionType.Replace(nameof(Exception), string.Empty));
-                        Error($"{exceptionName}: {tie.InnerException.Message}");
+                        PrintException(tie.InnerException);
                         return true;
                     }
 
                     if (exception is TaskCanceledException)
                         return true;
+
+                    if (aggregateException.InnerExceptions.Count == 1)
+                    {
+                        //If there's only one, this must be that one
+                        PrintException(exception);
+                        return true;
+                    }
 
                     return false;
                 });
@@ -269,6 +274,20 @@ namespace NetShell
             }
         }
 
+        protected void PrintException(Exception exn)
+        {
+            if (exn == null)
+                return;
+
+            var exceptionType = exn.GetType().Name;
+            var exceptionName = Shell.Humanize(exceptionType.Replace(nameof(Exception), string.Empty));
+            if (string.IsNullOrEmpty(exceptionName))
+                Error(exn.Message);
+            else
+                Error($"{exceptionName}: {exn.Message}");
+
+            PrintException(exn.InnerException);
+        }
 
         protected async Task<object> InvokeAsync(MethodInfo methodInfo, object[] typedArgs)
         {
