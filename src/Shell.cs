@@ -59,6 +59,7 @@ namespace NetShell
                 .Select(c => c.Trim())
                 .Select(str => (distance: Rank(str, hint), str))
                 .OrderBy(pair => pair.distance)
+                .ThenBy(pair => pair.str.Length)        //debug order .Select(pair => { Trace.WriteLine(pair); return pair; })
                 .Where(pair => pair.distance < pair.str.Length)
                 .Select(pair => pair.str);
 
