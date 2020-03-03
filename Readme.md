@@ -180,3 +180,10 @@ A great alternative for .net applications is to use PowerShell, it allows for ea
 - Async is difficult
 - Suggestions are non-trivial to implement
 - Porting existing C# code is tricky, especially when it uses [closures](https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.scriptblock.getnewclosure?redirectedfrom=MSDN&view=pscore-6.2.0#System_Management_Automation_ScriptBlock_GetNewClosure)
+
+## Submodules
+
+The submodules are internal to the project to simplify differences with the original projects.
+
+- [Readline](https://github.com/cobbr/readline.git)
+- [Console Table](https://github.com/khalidabuhakmeh/ConsoleTables.git)
