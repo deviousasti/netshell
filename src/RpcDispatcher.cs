@@ -136,7 +136,7 @@ namespace NetShell
                         ShouldQuoteEnclosedFields = true
                     })
                 {
-                    args = parser.ReadFields();
+                    args = parser.ReadFields().SkipWhile(String.IsNullOrWhiteSpace).ToArray();
                     if (args == null || args.Length == 0)
                     {
                         args = new string[] { };
