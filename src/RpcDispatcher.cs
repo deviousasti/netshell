@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -10,22 +11,47 @@ using System.Threading.Tasks;
 
 namespace NetShell
 {
+    /// <summary>
+    ///  Mark a method as a command
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
     public sealed class CommandAttribute : Attribute
     {
+
+        /// <summary>
+        /// Sets the name of the command, prefer lowercase names
+        /// separated by hyphens
+        /// </summary>
+        /// <value>The name of the command.</value>
         public string CommandName { get; }
 
+        /// <summary>
+        /// Sets the text which will be displayed as help.
+        /// </summary>
+        /// <value>
+        /// The help text.
+        /// </value>
         public string HelpText { get; set; }
 
-        public CommandAttribute()
+        /// <summary>
+        /// Marks this method as a command
+        /// </summary>
+        public CommandAttribute() { }
+
+        /// <summary>
+        /// Marks this method as a command
+        /// </summary>
+        /// <param name="commandName">Set the command name</param>
+        public CommandAttribute(string commandName)
         {
+            CommandName = commandName;
         }
 
-        public CommandAttribute(string methodName)
-        {
-            CommandName = methodName;
-        }
-
+        /// <summary>
+        /// Marks this method as a command
+        /// </summary>
+        /// <param name="commandName">Set the command name</param>
+        /// <param name="helpText">Set the help text</param>
         public CommandAttribute(string commandName, string helpText)
         {
             CommandName = commandName;
@@ -33,52 +59,139 @@ namespace NetShell
         }
     }
 
+    /// <summary>
+    /// Mark this method as the default command handler, run when no
+    /// other matching commands have been found
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
     public sealed class DefaultCommandAttribute : Attribute
     {
-
     }
 
+    /// <summary>
+    /// Names the method used for picking suggestions
+    /// </summary>
+    /// <seealso cref="System.Attribute" />
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
     public sealed class SuggestAttribute : Attribute
     {
+        /// <summary>
+        /// Gets the name of the method.
+        /// </summary>
         public string MethodName { get; }
 
+        /// <summary>
+        /// Name the method used which returns a list of suggestions
+        /// </summary>
+        /// <param name="methodName">Name of the method.</param>
         public SuggestAttribute(string methodName)
         {
             this.MethodName = methodName;
         }
     }
 
+    /// <summary>
+    /// Represents the normal form of a command dispatch
+    /// </summary>
+    /// <param name="method">The method name .</param>
+    /// <param name="args">The method arguments.</param>
     public delegate void CommandDelegate(string method, string[] args);
 
+    /// <summary>
+    /// This is the underlying class responsible 
+    /// for translating text commands to method calls
+    /// </summary>
     public class RpcDispatcher
     {
+        #region Properties
+        /// <summary>
+        /// Gets or sets the stack push command.
+        /// When a command line ends with this string, it causes the
+        /// existing arguments to be pushed to stack
+        /// </summary>
+        /// <value>
+        /// The stack push command. Default is '\'
+        /// </value>
         public string StackPushCommand { get; set; } = "\\";
 
+        /// <summary>
+        /// Gets or sets the stack pop command.
+        /// When a command line equals this string, it causes the
+        /// existing arguments to be popped one at a time
+        /// </summary>
+        /// <value>
+        /// The stack push command. Default is '..'
+        /// </value>
         public string StackPopCommand { get; set; } = "..";
 
+        /// <summary>
+        /// Gets or sets the stack clear command.
+        /// When a command line equals this string, it causes the
+        /// existing argument stack to be cleared
+        /// </summary>
+        /// <value>
+        /// The stack clear command. Default is '...'
+        /// </value>
         public string StackClearCommand { get; set; } = "...";
 
+        /// <summary>
+        /// Gets the target of the RPC calls.
+        /// </summary>
         public object Target { get; }
 
-        protected Dictionary<Type, Object> Inject { get; }
 
-        private Dictionary<string, MethodInfo> LookupTable { get; }
-
+        /// <summary>
+        /// Gets or sets the error handler function.
+        /// </summary>
         public Action<string> Error { get; set; } = text => ConsoleUtil.Error(text);
 
-        public Stack<string> Stack { get; set; }
+        /// <summary>
+        /// Gets the argument stack.
+        /// </summary>
+        public Stack<string> Stack { get; }
 
+        /// <summary>
+        /// Gets or sets the default action handler - called when no matching method has been found.
+        /// </summary>
         public CommandDelegate DefaultAction { get; set; }
-        
+
+        /// <summary>
+        /// Occurs when the argument stack has been changed.
+        /// </summary>
         public event Action<IEnumerable<string>> StackChanged;
 
-        public IEnumerable<string> GetCommands()
+        /// <summary>
+        /// Mapping of injectable types
+        /// </summary>
+        protected Dictionary<Type, Object> Inject { get; }
+
+        /// <summary>
+        /// Mapping of names to methods
+        /// </summary>
+        private Dictionary<string, MethodInfo> LookupTable { get; }
+
+        /// <summary>
+        /// Enumerates the available commands.
+        /// </summary>
+        public IEnumerable<string> GetCommands() =>
+            this.LookupTable.Keys.Select(k => k.ToLowerInvariant());
+
+        /// <summary>
+        /// Gets the method corresponding to the name (case insensitive).
+        /// </summary>
+        /// <returns>true if found</returns>
+        protected bool GetMethod(string name, out MethodInfo methodInfo)
         {
-            return this.LookupTable.Keys.Select(k => k.ToLowerInvariant());
+            return LookupTable.TryGetValue((name ?? string.Empty).ToUpperInvariant(), out methodInfo);
         }
 
+        #endregion
+
+        #region Ctor
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RpcDispatcher"/> class.
+        /// </summary>
+        /// <param name="target">The target object containing the RPC methods.</param>
         public RpcDispatcher(object target)
         {
             Target = target;
@@ -99,7 +212,7 @@ namespace NetShell
 
                 DefaultAction = defaultCommand != null ?
                     (name, args) => Invoke(defaultCommand, new object[] { name, args }, Inject)
-                    : 
+                    :
                     new CommandDelegate(DefaultActionHandler);
             }
             catch (ArgumentException)
@@ -113,16 +226,18 @@ namespace NetShell
                     $" on methods {String.Join(" and ", duplicate.Select(d => d.method.Name))}"
                     );
             }
-        }
+        } 
+        #endregion
 
-        public void Register(Type type, object obj) => Inject[type] = obj;
-
-        public void Register<T>(T obj) => Register(typeof(T), obj);
-
-        public T GetInstance<T>() => (T)Inject[typeof(T)];
-
+        #region Parse
+        /// <summary>
+        /// Try to parse the text into a list of arguments
+        /// </summary>
         public bool TryParse(string text, out string[] args) => TryParse(new StringReader(text), out args);
 
+        /// <summary>
+        /// Try to parse the text into a list of arguments
+        /// </summary>
         public bool TryParse(TextReader reader, out string[] args)
         {
             try
@@ -155,16 +270,32 @@ namespace NetShell
             return false;
         }
 
+        /// <summary>
+        /// Determines whether the specified argument is a flag.
+        /// </summary>
         protected bool IsFlag(string arg) => arg != null && arg.StartsWith("-");
 
+        /// <summary>
+        /// Finds the parameter for the corresponding switch.
+        /// </summary>
         protected ParameterInfo FindParameterFor(string flagName, ParameterInfo[] parameters)
         {
             var name = flagName.Replace('-', '\0');
             return Array.Find(parameters, p => p.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase));
         }
 
+        #endregion
+
+        #region Dispatch
+
+        /// <summary>
+        /// Dispatches an RPC call with the specified command text
+        /// </summary>        
         public bool Dispatch(string input) => Dispatch(new StringReader(input));
 
+        /// <summary>
+        /// Dispatches an RPC call with the specified input reader
+        /// </summary>
         public bool Dispatch(TextReader reader)
         {
             if (!TryParse(reader, out var args))
@@ -173,6 +304,9 @@ namespace NetShell
             return Dispatch(args);
         }
 
+        /// <summary>
+        /// Dispatches an RPC call with the parsed set of arguments
+        /// </summary>
         public bool Dispatch(IEnumerable<string> arguments)
         {
             if (!GetContext(arguments, out var name, out var rawargs))
@@ -307,9 +441,29 @@ namespace NetShell
                 Error(exception.ToString());
             }
 
-
             return true;
         }
+
+        #endregion
+
+        #region Injection
+
+        /// <summary>
+        /// Registers the specified type and instance for dependency injection.
+        /// </summary>
+        public void Register(Type type, object obj) => Inject[type] = obj;
+
+        /// <summary>
+        /// Registers the specified type for dependency injection.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj">The instance.</param>
+        public void Register<T>(T obj) => Register(typeof(T), obj);
+
+        /// <summary>
+        /// Gets the instance of type T.
+        /// </summary>
+        public T GetInstance<T>() => (T)Inject[typeof(T)];
 
         protected bool CanInject(Dictionary<Type, object> injectable, ParameterInfo p)
         {
@@ -339,6 +493,9 @@ namespace NetShell
                 typedArgs[i] = injectable[typeKey];
             }
         }
+        #endregion
+
+        #region Default Action
 
         protected virtual void OnCommandNotFound(string name, string[] args)
         {
@@ -349,7 +506,7 @@ namespace NetShell
             catch (Exception ex)
             {
                 Error(ex.Message);
-            }            
+            }
         }
 
         protected virtual void DefaultActionHandler(string name, string[] args)
@@ -357,17 +514,25 @@ namespace NetShell
             Error("Command " + name + " was not found");
         }
 
+        #endregion
+
+        #region Events
+        
         protected virtual void OnResult(object result)
         {
             //no default action on result
         }
 
-        public bool GetMethod(string name, out MethodInfo methodInfo)
+        protected virtual bool OnStackChanged()
         {
-            return LookupTable.TryGetValue((name ?? string.Empty).ToUpperInvariant(), out methodInfo);
+            StackChanged?.Invoke(Stack.Reverse());
+            return false;
         }
+        #endregion
 
-        public bool GetContext(IEnumerable<string> arguments, out string name, out string[] args)
+        #region Argument Construction
+
+        protected bool GetContext(IEnumerable<string> arguments, out string name, out string[] args)
         {
             var all = Stack.Reverse().Concat(arguments.Where(a => !string.IsNullOrWhiteSpace(a)));
 
@@ -403,14 +568,22 @@ namespace NetShell
                 else if (toConvert.ToUpperInvariant().Equals("N"))
                     return false;
 
-                var desc = TypeDescriptor.GetConverter(parameterType);
+            var desc = TypeDescriptor.GetConverter(parameterType);
 
             if (desc != null && desc.CanConvertFrom(typeof(string)))
                 return desc.ConvertFromString(toConvert);
 
             return Convert.ChangeType(toConvert, parameterType);
         }
+        #endregion
 
+        #region Help
+
+        /// <summary>
+        /// Gets the command attribute for the method.
+        /// </summary>
+        /// <param name="method">The method name.</param>
+        /// <returns>null if not found</returns>
         public CommandAttribute GetCommandAttribute(string method)
         {
             if (!GetMethod(method, out var methodInfo))
@@ -419,6 +592,9 @@ namespace NetShell
             return methodInfo.GetCustomAttributes<CommandAttribute>().FirstOrDefault();
         }
 
+        /// <summary>
+        /// Gets the command syntax for the specified method.
+        /// </summary>
         public string GetSyntax(string name)
         {
             if (!GetMethod(name, out var methodInfo))
@@ -430,15 +606,19 @@ namespace NetShell
             return $"{attr.CommandName} {paramText}";
         }
 
+        /// <summary>
+        /// Gets the help text for that parameter
+        /// </summary>
+        /// <param name="name">The name of the parameter.</param>
         public string GetParamHelp(string name)
         {
             if (!GetMethod(name, out var methodInfo))
                 return String.Empty;
 
-            var paramDescriptions = 
+            var paramDescriptions =
             methodInfo
                 .GetParameters()
-                .SelectMany(parameter => 
+                .SelectMany(parameter =>
                     parameter
                     .GetCustomAttributes<DescriptionAttribute>()
                     .Select(desc => $"-{parameter.Name}\t{desc.Description}")
@@ -447,7 +627,7 @@ namespace NetShell
             return String.Join(Environment.NewLine, paramDescriptions);
         }
 
-            private string GetParamInfo(ParameterInfo p)
+        private string GetParamInfo(ParameterInfo p)
         {
             if (CanInject(Inject, p))
                 return $"";
@@ -455,12 +635,11 @@ namespace NetShell
             return $"({p.ParameterType.Name} {(p.HasDefaultValue ? $"[{p.Name}] = {p.DefaultValue}" : p.Name)})";
         }
 
-        protected bool OnStackChanged()
-        {
-            StackChanged?.Invoke(Stack.Reverse());
-            return false;
-        }
-
+        /// <summary>
+        /// Gets the full help text for that parameter.
+        /// </summary>
+        /// <param name="commandName">Name of the command.</param>
+        /// <returns></returns>
         public string GetHelp(string commandName)
         {
             var attr = this.GetCommandAttribute(commandName);
@@ -468,10 +647,16 @@ namespace NetShell
             return $"Command {attr?.CommandName} {attr?.HelpText} \nSyntax: {GetSyntax(commandName)}\n{paramHelp}";
         }
 
+        /// <summary>
+        /// List all commands and their descriptions
+        /// </summary>
+        /// <returns></returns>
         public string GetHelp()
         {
-            var table = GetCommands().Select(command => $"{command.PadRight(20)} {GetCommandAttribute(command)?.HelpText}");
+            var table = GetCommands().Select(command => $"{command,20} {GetCommandAttribute(command)?.HelpText}");
             return String.Join("\n", table);
-        }
+        } 
+
+        #endregion
     }
 }

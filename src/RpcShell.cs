@@ -44,6 +44,10 @@ namespace NetShell
             Inject.Add(typeof(RpcShell), this);
         }
 
+        /// <summary>
+        /// Runs this instance with the target object.
+        /// </summary>
+        /// <returns>Exit code</returns>
         public int Run()
         {
             var exitCode = Shell.Run();
