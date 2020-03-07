@@ -648,6 +648,11 @@ namespace NetShell
             if (CanInject(Inject, p))
                 return $"";
 
+            var underlying = Nullable.GetUnderlyingType(p.ParameterType);
+            var paramTypeName = (underlying ?? p.ParameterType).Name + (underlying != null ? "?" : "");
+            var paramSig = p.HasDefaultValue ? p.DefaultValue != null ? $"[{p.Name}] = {p.DefaultValue}" : $"[{p.Name}]" : p.Name;
+
+            return $"({paramTypeName} {paramSig})";
         }
 
         /// <summary>
