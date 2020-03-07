@@ -226,7 +226,7 @@ namespace NetShell
                     $" on methods {String.Join(" and ", duplicate.Select(d => d.method.Name))}"
                     );
             }
-        } 
+        }
         #endregion
 
         #region Parse
@@ -251,7 +251,7 @@ namespace NetShell
                         ShouldQuoteEnclosedFields = true
                     })
                 {
-                    args = parser.ReadFields().SkipWhile(String.IsNullOrWhiteSpace).ToArray();
+                    args = parser.ReadFields()?.SkipWhile(String.IsNullOrWhiteSpace).ToArray();
                     if (args == null || args.Length == 0)
                     {
                         args = new string[] { };
@@ -355,53 +355,79 @@ namespace NetShell
                 {
                     var arg = args[i];
                     var next = i + 1 < args.Length ? args[i + 1] : null;
+                    var ordered = parameters[param_order];
 
-                    if (IsFlag(arg))
+                    try
                     {
-                        var position = Array.IndexOf(parameters, FindParameterFor(arg, parameters));
-                        if (position == -1)
+                        if (IsFlag(arg))
                         {
-                            Error($"No parameter named {arg} was found. Valid parameters: {String.Join(", ", parameters.Select(p => p.Name))}");
-                            return false;
-                        }
-
-                        var param = parameters[position];
-
-                        if (!usedParams.Add(param))
-                        {
-                            Error($"Parameter {arg} was specified more than once");
-                            return false;
-                        }
-
-                        if (IsFlag(next) || next == null)
-                        {
-                            if (param.ParameterType != typeof(bool))
+                            var position = Array.IndexOf(parameters, FindParameterFor(arg, parameters));
+                            if (position == -1)
                             {
-                                Error($"A value was not specified for -{param.Name}");
+                                Error($"No parameter named {arg} was found. Valid parameters: {String.Join(", ", parameters.Select(p => p.Name))}");
                                 return false;
                             }
 
-                            //attempted to use as a switch, rather than 
-                            //a parameter with a value
-                            typedArgs[position] = ConvertArg("true", param);
+                            ordered = parameters[position];
+
+                            if (!usedParams.Add(ordered))
+                            {
+                                Error($"Parameter {arg} was specified more than once");
+                                return false;
+                            }
+
+                            if (IsFlag(next) || next == null)
+                            {
+                                if (ordered.ParameterType != typeof(bool))
+                                {
+                                    Error($"A value was not specified for -{ordered.Name}");
+                                    return false;
+                                }
+
+                                //attempted to use as a switch, rather than 
+                                //a parameter with a value
+                                typedArgs[position] = ConvertArg("true", ordered);
+                                continue;
+                            }
+
+                            //consider next argument taken
+                            typedArgs[position] = ConvertArg(next, ordered);
+
+                            i += 1; //skip ahead
                             continue;
                         }
 
-                        //consider next argument taken
-                        typedArgs[position] = ConvertArg(next, param);
-                        i += 1; //skip ahead
-                        continue;
-                    }
+                        if (!usedParams.Add(ordered))
+                        {
+                            Error($"The parameter for {arg} was already specified at position ({param_order})");
+                            return false;
+                        }
 
-                    if (!usedParams.Add(parameters[param_order]))
+                        //regular parameter order
+                        typedArgs[param_order] = ConvertArg(arg, ordered);
+                        param_order += 1;
+
+                    }
+                    catch (Exception)
                     {
-                        Error($"The parameter for {arg} was already specified at position ({param_order})");
+                        if (IsFlag(arg))
+                            Error($"Could not convert value for {arg} from '{next}'");
+                        else
+                            Error($"Could not convert value for -{ordered.Name} from '{arg}'");
+
+                        if (ordered.ParameterType.IsEnum)
+                        {
+                            Error($"Valid values for {ordered.Name}: {String.Join(", ", Enum.GetNames(ordered.ParameterType))}");
+                        }
+                        else
+                        {
+                            Error($"Expected {GetParamInfo(ordered)}");
+                        }
+
+                        Error(GetSyntax(name));
+
                         return false;
                     }
-
-                    //regular parameter order
-                    typedArgs[param_order] = ConvertArg(arg, parameters[param_order]);
-                    param_order += 1;
                 }
 
                 var requiredParameters = parameters.Where(p => !p.HasDefaultValue && !CanInject(injectable, p));
@@ -417,16 +443,6 @@ namespace NetShell
             {
                 Error("Invalid arguments: " + exception.Message);
                 Error(GetSyntax(name));
-
-                foreach (var parameter in parameters)
-                {
-                    var parameterType = parameter.ParameterType;
-
-                    if (parameterType.IsEnum)
-                    {
-                        Error($"Valid values for {parameter.Name}: {String.Join(", ", Enum.GetNames(parameterType))}");
-                    }
-                }
 
                 return false;
             }
@@ -517,7 +533,7 @@ namespace NetShell
         #endregion
 
         #region Events
-        
+
         protected virtual void OnResult(object result)
         {
             //no default action on result
@@ -632,7 +648,6 @@ namespace NetShell
             if (CanInject(Inject, p))
                 return $"";
 
-            return $"({p.ParameterType.Name} {(p.HasDefaultValue ? $"[{p.Name}] = {p.DefaultValue}" : p.Name)})";
         }
 
         /// <summary>
@@ -655,7 +670,7 @@ namespace NetShell
         {
             var table = GetCommands().Select(command => $"{command,20} {GetCommandAttribute(command)?.HelpText}");
             return String.Join("\n", table);
-        } 
+        }
 
         #endregion
     }
