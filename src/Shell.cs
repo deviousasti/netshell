@@ -14,31 +14,62 @@ namespace NetShell
     public class Shell : IDisposable, IAutoCompleteHandler
     {
 
-        public static Shell Instance { get; set; }
+        /// <summary>
+        /// Gets the default instance of the shell.
+        /// </summary>
+        public static Shell Instance { get; protected set; }
 
+        /// <summary>
+        /// Gets or sets the command history file.
+        /// </summary>
         public string HistoryFile { get; set; }
 
+        /// <summary>
+        /// Gets or sets the command history limit.
+        /// </summary>
         public int HistoryLimit { get; set; }
 
+        /// <summary>
+        /// The shell exits with this exit code.
+        /// </summary>
         public int ExitCode { get; set; }
 
+        /// <summary>
+        /// Display this prompt before every command input
+        /// </summary>
         public string Prompt { get; set; }
 
+        /// <summary>
+        /// Tokenize the input command with these separators.
+        /// Defaults are space-separated parameters.
+        /// </summary>
+        /// <value>
+        /// The separators.
+        /// </value>
         public char[] Separators { get; set; }
 
+        /// <summary>
+        /// The default shell prompt
+        /// </summary>
         public const string DefaultPrompt = ">";
 
         private string[] commands;
+
+        /// <summary>
+        /// Gets or sets the available list of commands.
+        /// </summary>
         public IEnumerable<string> Commands
         {
             get => this.commands;
-            set
-            {
-                this.commands = value.ToArray();
-                ReadLine.AutoCompletionHandler = this;
-            }
+            set => this.commands = value.ToArray();
         }
 
+        /// <summary>
+        /// Gets the auto-complete suggestions for given text and cursor index.
+        /// </summary>
+        /// <param name="text">The command text.</param>
+        /// <param name="index">Cursor index.</param>
+        /// <returns></returns>
         public string[] GetSuggestions(string text, int index)
         {
             return RankSuggestions(this.commands, text, index)
@@ -46,6 +77,13 @@ namespace NetShell
                 .ToArray();
         }
 
+        /// <summary>
+        /// Ranks suggestions by proximity and edit distance.
+        /// </summary>
+        /// <param name="commands">The commands to tank.</param>
+        /// <param name="text">The text.</param>
+        /// <param name="index">Cursor index.</param>
+        /// <returns></returns>
         public static IEnumerable<string> RankSuggestions(IEnumerable<string> commands, string text, int index)
         {
             var hint = text.Substring(index).Trim('-');
@@ -66,6 +104,12 @@ namespace NetShell
             return suggestions;
         }
 
+        /// <summary>
+        /// Ranks the specified string with another.
+        /// </summary>
+        /// <param name="str">The string.</param>
+        /// <param name="hint">The hint.</param>
+        /// <returns>0 to N, where 0 is the closest</returns>
         public static int Rank(string str, string hint)
         {
             var split = str.Trim('-').Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
@@ -83,19 +127,32 @@ namespace NetShell
             return distance;
         }
 
-        public static string QuoteIfNeeded(string arg) => 
+        /// <summary>
+        /// Quotes arguments if needed.
+        /// </summary>
+        public static string QuoteIfNeeded(string arg) =>
             arg.Contains(' ') && arg.IndexOf('"') != 0 ? $"\"{arg}\"" : arg;
 
+        /// <summary>
+        /// Humanizes the specified value.
+        /// Converts 'InvalidOperation' to 'Invalid Operation'
+        /// </summary>
         public static string Humanize(string value)
         {
             return Regex.Replace(value, "(?!^)([A-Z])", " $1");
         }
 
+        /// <summary>
+        /// Converts 'GetFile' to 'Get-File'
+        /// </summary>
         public static string Hyphenize(string value)
         {
             return Regex.Replace(value, "(?!^)([A-Z])", "-$1");
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Shell"/> class.
+        /// </summary>
         public Shell()
         {
             Instance = this;
@@ -106,15 +163,30 @@ namespace NetShell
             Separators = new[] { ' ' };
         }
 
+        /// <summary>
+        /// Handles the cancel (Ctrl+C) key.
+        /// </summary>
         public void HandleCancelKey()
         {
             Console.CancelKeyPress += OnCancelKeyPress;
         }
 
+        /// <summary>
+        /// Raised when when a line has been entered into the shell.
+        /// </summary>
         public event Func<string, bool> Command;
 
+        /// <summary>
+        /// Gets a value indicating whether the shell instance is running.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is running; otherwise, <c>false</c>.
+        /// </value>
         public bool IsRunning { get; private set; }
 
+        /// <summary>
+        /// Handles exit on [cancel key press].
+        /// </summary>
         private void OnCancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             ConsoleUtil.Log(ConsoleColor.Green, "Press <return> to exit");
@@ -129,18 +201,30 @@ namespace NetShell
             IsRunning = false;
         }
 
+        /// <summary>
+        /// Gets or sets the current 'path' of the shell.
+        /// </summary>
         public string CurrentPath { get; set; }
 
+        /// <summary>
+        /// Sets the current path from pieces.
+        /// </summary>
         public void SetCurrentPath(IEnumerable<string> enumerable)
         {
-            CurrentPath = string.Join(" ", enumerable);
+            CurrentPath = string.Join(Separators.First().ToString(), enumerable);
         }
 
+        /// <summary>
+        /// Runs this instance with env command line args.
+        /// </summary>
         public int Run()
         {
             return Run(Environment.GetCommandLineArgs().Skip(1).ToArray());
         }
 
+        /// <summary>
+        /// Runs with the specified arguments.
+        /// </summary>
         public int Run(params string[] args)
         {
             if (File.Exists(HistoryFile))
@@ -159,10 +243,10 @@ namespace NetShell
 
                 return ExitCode;
             }
-            else
+            else if (args.Length > 0)
             {
-                if (args.Length > 0)
-                    OnCommand(string.Join(" ", args)); //reparse args
+                OnCommand(string.Join(" ", args)); //reparse args
+                return ExitCode;
             }
 
             while (IsRunning)
@@ -181,7 +265,7 @@ namespace NetShell
                 catch (Exception ex)
                 {
                     Trace.TraceError(ex.ToString());
-                }                
+                }
             }
 
             var history = ReadLine.GetHistory();
@@ -191,6 +275,9 @@ namespace NetShell
             return ExitCode;
         }
 
+        /// <summary>
+        /// Loads the history async.
+        /// </summary>
         private void LoadHistory()
         {
             Task.Factory.StartNew(() =>
@@ -199,13 +286,25 @@ namespace NetShell
             });
         }
 
-        private bool? OnCommand(string input)
+        /// <summary>
+        /// Raise the command event.
+        /// </summary>
+        protected bool? OnCommand(string input)
         {
             return Command?.Invoke(input);
         }
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is disposed.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is disposed; otherwise, <c>false</c>.
+        /// </value>
         public bool IsDisposed { get; private set; }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             IsRunning = false;
@@ -213,12 +312,18 @@ namespace NetShell
             Console.CancelKeyPress -= OnCancelKeyPress;
         }
 
+        /// <summary>
+        /// Exits with the specified exit code.
+        /// </summary>
         public void Exit(int exitCode = 0)
         {
             this.ExitCode = exitCode;
             IsRunning = false;
         }
 
+        /// <summary>
+        /// Calculate Levenshteins distance.
+        /// </summary>
         static int LevenshteinDistance(string s, string t)
         {
             int n = s.Length;
@@ -265,6 +370,9 @@ namespace NetShell
         }
 
 
+        /// <summary>
+        /// Returns a poller which cancels the token source when any key is pressed
+        /// </summary>
         public IDisposable CancelOnKey(System.Threading.CancellationTokenSource cancellation, int waitAfter)
         {
             var timer = new Timer(_ =>
