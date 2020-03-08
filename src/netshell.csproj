@@ -7,8 +7,8 @@
     <ProjectGuid>{7F59F408-EFBB-4DFA-BCAD-72CB6F6E0F01}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>netshell</RootNamespace>
-    <AssemblyName>netshell</AssemblyName>
+    <RootNamespace>NetShell</RootNamespace>
+    <AssemblyName>NetShell</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -60,6 +60,7 @@
       <Link>Readline\ReadLine.cs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="CommandBase.cs" />
     <Compile Include="Parser\MalformedLineException.cs" />
     <Compile Include="Util\ObjectDumper.cs" />
     <Compile Include="Util\ConsoleUtil.cs" />
