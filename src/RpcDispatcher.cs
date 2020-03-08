@@ -673,7 +673,7 @@ namespace NetShell
         /// <returns></returns>
         public string GetHelp()
         {
-            var table = GetCommands().Select(command => $"{command,20} {GetCommandAttribute(command)?.HelpText}");
+            var table = GetCommands().Select(command => $"{command,-20} {GetCommandAttribute(command)?.HelpText}");
             return String.Join("\n", table);
         }
 
