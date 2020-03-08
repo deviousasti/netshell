@@ -122,7 +122,14 @@ namespace NetShell
                         var suggestionMethod = Target.GetType().GetMethod(suggestion);
                         if (suggestionMethod != null)
                         {
-                            var suggestParams = (new object[] { lastArg, index }).Take(suggestionMethod.GetParameters().Length).ToArray();
+                            var suggestParams = new object[suggestionMethod.GetParameters().Length];
+                            InjectArguments(suggestionMethod, new Dictionary<Type, object>
+                            {
+                                {typeof(string), lastArg },
+                                {typeof(int), index },
+                            }, ref suggestParams);
+
+                            InjectArguments(suggestionMethod, Inject, ref suggestParams);
 
                             var result =
                                 suggestionMethod.Invoke(Target, suggestParams) as IEnumerable<string>;
@@ -356,7 +363,7 @@ namespace NetShell
                     }
             }
 
-            
+
         }
         #endregion
     }
