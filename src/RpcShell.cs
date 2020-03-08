@@ -57,6 +57,14 @@ namespace NetShell
             return exitCode;
         }
 
+        /// <summary>
+        /// Exits with the specified exit code.
+        /// </summary>
+        /// <param name="exitCode">The exit code.</param>
+        public void Exit(int exitCode)
+        {
+            Shell.Exit(exitCode);
+        }
 
         /// <summary>Shortcut methods which creates a new RpcShell and runs it</summary>
         /// <param name="target">The target.</param>
@@ -324,11 +332,31 @@ namespace NetShell
         /// <param name="args">Command arguments originally provided</param>
         protected override void DefaultActionHandler(string name, string[] args)
         {
-            base.DefaultActionHandler(name, args);
+            switch (name)
+            {
+                case "help":
+                    {
+                        Console.WriteLine(args.Length >= 1 ? GetHelp(args[0]) : GetHelp());
+                        break;
+                    }
 
-            var suggestions = Shell.RankSuggestions(GetCommands(), name, 0);
-            if (suggestions.Any())
-                Error($"Did you mean: {String.Join(", ", suggestions)}");
+                case "exit":
+                    {
+                        Shell.Exit(0);
+                        break;
+                    }
+
+                default:
+                    {
+                        base.DefaultActionHandler(name, args);
+                        var suggestions = Shell.RankSuggestions(GetCommands(), name, 0).ToArray();
+                        if (suggestions.Any())
+                            Error($"Did you mean: {String.Join(", ", suggestions)}");
+                        break;
+                    }
+            }
+
+            
         }
         #endregion
     }
