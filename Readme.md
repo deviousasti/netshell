@@ -1,6 +1,6 @@
 # netshell
 
-Create a unix-like shell for your APIs
+Create a bash-like shell for your APIs
 
 ## 10-second intro
 
@@ -122,9 +122,9 @@ in your method you can use `HttpClient` as a parameter, and it will be injected 
 public Task<string> Validate(string number, HttpClient client) => 	
 	client.GetStringAsync($"https://numvalidate.com/api/validate?number={number}");            
 ```
-The shell itself can be injected. For example, to change the current prompt from within a command:
+The shell itself is injected. For example, to change the current prompt from within a command:
 
-```
+```csharp
 [Command("cd")]
 public void ChangeDir(string path, Shell shell)
 {
@@ -168,13 +168,35 @@ Command validate-phone
 Syntax: validate-phone (String number)
 ```
 
+### Common commands
 
+Although there exists a internal implementation of `help`, it's a good idea to implement your own help method with any additional info you may have.
+
+```csharp
+[Command("help")]
+public string Help(string command, RpcShell shell)
+{
+	return shell.GetHelp(command);
+}
+```
+There's a default implementation for `exit`. 
+Implementing `exit`:
+
+```csharp
+[Command("exit")]
+public void Exit(RpcShell shell)
+{
+	shell.Exit(0);
+}
+```
+There're default implementations of `help`, `exit` and `clear` in `CommandBase`.
+You can just inherit from it if you want to avoid writing your own.
 
 ## Why use netshell?
 
 netshell was developed as a way for ops to have a simplified command-line interface into the application internals without having to know implementation details. Most of the methods you want to export are likely already written as part of tests. 
 
-A great alternative for .net applications is to use PowerShell, it allows for easy scripting of common tasks. Unfortunately, PowerShell there are some significant hurdles:
+A great alternative for .NET applications is to use PowerShell, it allows for easy scripting of common tasks. Unfortunately, with PowerShell there are some significant hurdles:
 
 - Mix of scripts and assemblies, type loading issues
 - Async is difficult

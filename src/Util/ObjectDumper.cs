@@ -8,6 +8,9 @@ namespace GenericToDataString
 {
     //Taken from
     //http://stackoverflow.com/questions/852181/c-printing-all-properties-of-an-object
+
+    //TODO: Replace with better object writer
+    //This isn't being used very much other than for debug
     public class ObjectDumper
     {
         private int _currentIndent;
