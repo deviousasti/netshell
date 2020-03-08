@@ -19,6 +19,21 @@ Gets you this:
 
 ![netshell](https://user-images.githubusercontent.com/2375486/75217204-57feb580-57bc-11ea-8211-91842a631c3b.gif)
 
+
+
+## Why use netshell?
+
+netshell was developed as a way for ops to have a simplified command-line interface into the application internals without having to know implementation details. Most of the methods you want to export are likely already written as part of tests. 
+
+A great alternative for .NET applications is to use PowerShell, it allows for easy scripting of common tasks. Unfortunately, with PowerShell there are some significant hurdles:
+
+- Mix of scripts and assemblies, type loading issues
+- Async is difficult
+- Suggestions are non-trivial to implement
+- Porting existing C# code is tricky, especially when it uses [closures](https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.scriptblock.getnewclosure?redirectedfrom=MSDN&view=pscore-6.2.0#System_Management_Automation_ScriptBlock_GetNewClosure)
+
+
+
 ## Features 
 
 * Auto-completion
@@ -31,6 +46,8 @@ Gets you this:
 * Help generation
 * Stacked commands
 * and more
+
+
 
 ## Usage
 
@@ -191,17 +208,6 @@ public void Exit(RpcShell shell)
 ```
 There're default implementations of `help`, `exit` and `clear` in `CommandBase`.
 You can just inherit from it if you want to avoid writing your own.
-
-## Why use netshell?
-
-netshell was developed as a way for ops to have a simplified command-line interface into the application internals without having to know implementation details. Most of the methods you want to export are likely already written as part of tests. 
-
-A great alternative for .NET applications is to use PowerShell, it allows for easy scripting of common tasks. Unfortunately, with PowerShell there are some significant hurdles:
-
-- Mix of scripts and assemblies, type loading issues
-- Async is difficult
-- Suggestions are non-trivial to implement
-- Porting existing C# code is tricky, especially when it uses [closures](https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.scriptblock.getnewclosure?redirectedfrom=MSDN&view=pscore-6.2.0#System_Management_Automation_ScriptBlock_GetNewClosure)
 
 ## Submodules
 
