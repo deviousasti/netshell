@@ -121,6 +121,12 @@ namespace NetShell
             while (!(nextIndex >= line.Length))
             {
                 var field = GetNextField(line, currentIndex, ref nextIndex, out var isQuoted);
+                //replace "" used to escape with "
+                field = field.Replace("\"\"", "\"");
+
+                //denote that this was a quoted field 
+                //if a parser wants to distinguish between a term
+                //and an explicitly quoted field
                 if (ShouldQuoteEnclosedFields && isQuoted)
                     field = $"\"{field}\"";
                 
