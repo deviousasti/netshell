@@ -28,7 +28,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace NetShell
+namespace System.Text.Parser
 {
     [Serializable]
     internal class MalformedLineException : Exception

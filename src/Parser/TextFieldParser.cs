@@ -1,7 +1,7 @@
 ﻿
 // This was ported from Microsoft.VisualBasic.FileIO.TextFieldParser
 // This was ported because installs of Mono and .NET core lack the Microsoft.VisualBasic library
-// and so no TextFieldParser and throws a typeload exception
+// and throws a typeload exception
 
 //What's a nice class like TextFieldParser doing in a namespace like Microsoft.VisualBasic
 //http://geekswithblogs.net/brians/archive/2010/07/07/whats-a-nice-class-like-textfieldparser-doing-in-a-namespace.aspx
@@ -46,7 +46,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualBasic;
 using System.ComponentModel;
 
-namespace NetShell
+namespace System.Text.Parser
 {
     public enum FieldType
     {
@@ -121,6 +121,7 @@ namespace NetShell
             while (!(nextIndex >= line.Length))
             {
                 var field = GetNextField(line, currentIndex, ref nextIndex, out var isQuoted);
+
                 //replace "" used to escape with "
                 field = field.Replace("\"\"", "\"");
 
