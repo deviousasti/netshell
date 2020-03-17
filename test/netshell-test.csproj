@@ -54,7 +54,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\netshell.csproj">
+    <ProjectReference Include="..\src\netshell.csproj">
       <Project>{7F59F408-EFBB-4DFA-BCAD-72CB6F6E0F01}</Project>
       <Name>netshell</Name>
     </ProjectReference>

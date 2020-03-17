@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netshell", "src\netshell.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "simple-shell", "examples\simple-shell.csproj", "{25CE01D7-F10C-4E56-BCC7-DEAAE418718F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netshell-test", "test\netshell-test\netshell-test.csproj", "{90215E74-3BB2-4025-ACA5-9DB97E31D0F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "netshell-test", "test\netshell-test.csproj", "{90215E74-3BB2-4025-ACA5-9DB97E31D0F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
