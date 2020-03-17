@@ -31,7 +31,7 @@ using System.Runtime.Serialization;
 namespace System.Text.Parser
 {
     [Serializable]
-    internal class MalformedLineException : Exception
+    public class MalformedLineException : Exception
     {
         public long LineNumber { get; }
 
