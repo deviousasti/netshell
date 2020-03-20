@@ -262,9 +262,9 @@ namespace NetShell
                     return true;
                 }
             }
-            catch (MalformedLineException) //This is always going to be line 1
+            catch (Exception) 
             {
-                Error($"Invalid syntax or unclosed quotes in line");
+                //This is always going to be line 1
             }
 
             args = null;
@@ -300,7 +300,10 @@ namespace NetShell
         public bool Dispatch(TextReader reader)
         {
             if (!TryParse(reader, out var args))
+            {
+                Error($"Invalid syntax or unclosed quotes in line");
                 return false;
+            }
 
             return Dispatch(args);
         }
