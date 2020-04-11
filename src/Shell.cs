@@ -171,6 +171,11 @@ namespace NetShell
             Console.CancelKeyPress += OnCancelKeyPress;
         }
 
+        public IEnumerable<string> GetHistory()
+        {
+            return ReadLine.GetHistory().AsEnumerable().Reverse();
+        }
+
         /// <summary>
         /// Raised when when a line has been entered into the shell.
         /// </summary>

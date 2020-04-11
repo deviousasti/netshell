@@ -98,12 +98,12 @@ namespace NetShell
                     var parameters = method.GetParameters();
                     var lastArg = args.LastOrDefault();
                     var secondLastArg = args.ElementAtOrDefault(args.Length - 2);
-                    var length = FindOrdinalLength(args);
+                    var ordinal = FindOrdinalLength(args);
 
                     if (IsFlag(lastArg))
                         return parameters.Where(p => !CanInject(Inject, p)).Select(p => $"-{p.Name}");
 
-                    if (FindOrdinalLength(args) > parameters.Length)
+                    if (ordinal > parameters.Length)
                         return Enumerable.Empty<string>();
 
                     var selected =
@@ -147,6 +147,19 @@ namespace NetShell
 
                     if (selected.ParameterType == typeof(bool))
                         return new[] { "Y", "N", "true", "false" };
+
+                    {
+                        var history = 
+                            Shell
+                                .GetHistory()
+                                .Where(item => item.StartsWith(name, StringComparison.InvariantCultureIgnoreCase))
+                                .Select(item => { return (match: TryParse(item, out var itemargs), itemargs); })
+                                .Where(expr => expr.match)
+                                .Select(expr => expr.itemargs.ElementAtOrDefault(ordinal))
+                                .Where(s => !String.IsNullOrEmpty(s));
+
+                        return history;
+                    }
                 }
 
             return GetCommands();
