@@ -95,7 +95,7 @@ namespace NetShell
             var suggestions = commands
                 .Where(c => !string.IsNullOrWhiteSpace(c))
                 .Select(c => c.Trim())
-                .Select(str => (distance: Rank(str, hint), str))
+                .Select(str => (distance: Rank(str.ToUpperInvariant(), hint.ToUpperInvariant()), str))
                 .OrderBy(pair => pair.distance)
                 .ThenBy(pair => pair.str.Length)        //debug order .Select(pair => { Trace.WriteLine(pair); return pair; })
                 .Where(pair => pair.distance < pair.str.Length)
@@ -123,7 +123,7 @@ namespace NetShell
             if (str.EndsWith(hint))
                 return 1;
 
-            var distance = LevenshteinDistance(hint.ToUpperInvariant(), str.ToUpperInvariant());
+            var distance = LevenshteinDistance(hint, str);
             return distance;
         }
 
