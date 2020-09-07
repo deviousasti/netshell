@@ -234,7 +234,7 @@ namespace NetShell
                                     .GetMethod(nameof(ConsoleTables.ConsoleTable.From))
                                     .MakeGenericMethod(innerType);
 
-                                var table = generator.Invoke(null, new[] { result }) as ConsoleTables.ConsoleTable;
+                                var table = (ConsoleTables.ConsoleTable)generator.Invoke(null, new[] { result }) ;
                                 table.Options.EnableCount = false;
                                 table.Write();
                             }
