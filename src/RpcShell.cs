@@ -334,10 +334,12 @@ namespace NetShell
             if (result is Task taskResult)
             {
                 await taskResult.ConfigureAwait(false);
-                if (taskResult.GetType().FullName.Contains("VoidTaskResult"))
+                var type = taskResult.GetType();
+
+                if (type.FullName.Contains("VoidTaskResult"))
                     return null;
 
-                return ((dynamic)taskResult).Result;
+                return type.GetProperty(nameof(Task<object>.Result)).GetValue(taskResult);
             }
 
             return result;
